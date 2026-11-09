@@ -1,0 +1,902 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reidratação pediátrica — calculadora clínica v11</title>
+<meta name="description" content="Calculadora de reidratação pediátrica: OMS Planos A/B/C, RCH e NICE. Volumes, mL/h e duração para o paciente informado.">
+<style>
+  :root{
+    --bg:#12141a; --panel:#1b1f27; --panel2:#232833; --line:#39404d;
+    --txt:#eef1f6; --muted:#a7b0bf; --accent:#5ee0c0; --accent2:#7db4ff;
+    --warn:#f2c14e; --danger:#ff8080; --ok:#7ee0a1;
+    --radius:12px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+    background:var(--bg); color:var(--txt); line-height:1.45;
+    padding:18px 16px 48px; max-width:1080px; margin:0 auto;
+    -webkit-text-size-adjust:100%;
+  }
+  h1{font-size:clamp(20px,4.2vw,27px); margin:0 0 4px; letter-spacing:-.2px}
+  h2{font-size:17px; margin:0 0 10px}
+  h3{font-size:14px; margin:0 0 6px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.04em}
+  .sub{color:var(--muted); font-size:13.5px; margin:0 0 14px}
+  .badges{display:flex; flex-wrap:wrap; gap:6px; margin:0 0 18px}
+  .badge{font-size:11.5px; padding:3px 9px; border:1px solid var(--line); border-radius:99px; color:var(--muted); background:var(--panel)}
+  .badge.v{border-color:#2f6b5c; color:var(--accent)}
+  .panel{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:16px; margin:0 0 14px}
+  .grid{display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(158px,1fr))}
+  .field{display:flex; flex-direction:column; gap:5px; min-width:0}
+  label{font-size:12.5px; color:var(--muted); font-weight:600}
+  label .req{color:var(--danger)}
+  input,select{
+    font:inherit; font-size:15px; padding:10px 11px; width:100%;
+    background:var(--panel2); color:var(--txt);
+    border:1px solid #4a5464; border-radius:9px; min-height:44px;
+  }
+  input:focus-visible,select:focus-visible,button:focus-visible{
+    outline:2px solid var(--accent2); outline-offset:2px; border-color:var(--accent2);
+  }
+  input[aria-invalid="true"],select[aria-invalid="true"]{border-color:var(--danger); background:#2a1e22}
+  .hint{font-size:11.5px; color:var(--muted); min-height:15px}
+  .hint.err{color:var(--danger)}
+  .tabs{display:flex; gap:6px; margin:0 0 12px; flex-wrap:wrap}
+  .tab{
+    font:inherit; font-size:13.5px; font-weight:600; cursor:pointer;
+    padding:9px 14px; border-radius:99px; min-height:40px;
+    background:var(--panel2); color:var(--muted); border:1px solid var(--line);
+  }
+  .tab[aria-selected="true"]{background:var(--accent); color:#07231d; border-color:var(--accent)}
+  .checks{display:flex; flex-direction:column; gap:9px; margin-top:2px}
+  .check{display:flex; align-items:flex-start; gap:9px; font-size:13.5px; color:var(--txt); font-weight:500; cursor:pointer}
+  .check input{width:20px; height:20px; min-height:0; flex:0 0 auto; margin-top:1px; accent-color:var(--accent)}
+  .check span{color:var(--txt)}
+  .check small{display:block; color:var(--muted); font-weight:400; font-size:11.5px}
+  .kpis{display:grid; gap:10px; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); margin:0 0 14px}
+  .kpi{background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:12px}
+  .kpi .k{display:block; font-size:11.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em}
+  .kpi .v{display:block; font-size:clamp(19px,3.6vw,23px); font-weight:800; color:var(--accent); margin:3px 0 2px; word-break:break-word}
+  .kpi .n{display:block; font-size:11.5px; color:var(--muted)}
+  table{width:100%; border-collapse:collapse; margin:0 0 12px; font-size:13.5px}
+  caption{text-align:left; font-size:12px; color:var(--muted); padding:0 0 6px}
+  th,td{padding:9px 10px; text-align:left; border-bottom:1px solid var(--line); vertical-align:top}
+  th{background:#2b3240; font-size:11.5px; text-transform:uppercase; letter-spacing:.03em; color:var(--muted); font-weight:700}
+  td strong{color:var(--accent)}
+  tbody tr:last-child td{border-bottom:none}
+  td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
+  .note,.warnbox,.errbox{border-radius:9px; padding:11px 13px; font-size:12.8px; margin:0 0 10px}
+  .note{background:#1e2733; border-left:4px solid var(--accent2); color:#cfe0f5}
+  .warnbox{background:#2e2a1d; border-left:4px solid var(--warn); color:#f3e3b6}
+  .errbox{background:#2e1e22; border-left:4px solid var(--danger); color:#ffc9c9}
+  .okbox{background:#1c2a22; border-left:4px solid var(--ok); color:#c4f0d3}
+  ul.alerts{margin:0; padding-left:18px}
+  ul.alerts li{margin:0 0 5px}
+  .rowbtns{display:flex; gap:8px; flex-wrap:wrap; margin:2px 0 0}
+  button.act{
+    font:inherit; font-size:13.5px; font-weight:600; cursor:pointer;
+    padding:9px 14px; border-radius:9px; min-height:42px;
+    background:var(--panel2); color:var(--txt); border:1px solid #4a5464;
+  }
+  button.act:hover{background:#2c3341}
+  .muted{color:var(--muted)}
+  details{border:1px solid var(--line); border-radius:10px; padding:10px 12px; background:var(--panel); margin:0 0 10px}
+  summary{cursor:pointer; font-size:13px; font-weight:600; color:var(--txt)}
+  details[open] summary{margin-bottom:8px}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px; background:#0e1116; padding:1px 5px; border-radius:5px; color:#c9d6e8}
+  footer{border-top:1px solid var(--line); margin-top:20px; padding-top:14px; font-size:12px; color:var(--muted)}
+  footer p{margin:0 0 6px}
+  .sr{position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0}
+  @media print{
+    :root{--bg:#fff; --panel:#fff; --panel2:#f5f6f8; --txt:#111; --muted:#555; --line:#bbb; --accent:#0b6b58; --accent2:#14508f}
+    body{max-width:none; padding:0; font-size:11.5pt}
+    .tabs,.rowbtns,.badges,footer .noprint,#selftest{display:none !important}
+    .panel{border:1px solid #999; break-inside:avoid; page-break-inside:avoid}
+    .kpi,table,details{break-inside:avoid; page-break-inside:avoid}
+    th{background:#e8eaee}
+    a[href]::after{content:""}
+    @page{margin:14mm}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Reidratação pediátrica — cálculos finais</h1>
+  <p class="sub">Calculadora clínica para o paciente informado: OMS (Planos A/B/C), RCH e NICE. Todos os volumes e velocidades são derivados do peso e da idade digitados.</p>
+  <div class="badges">
+    <span class="badge v">v11 · 2026-11-08</span>
+    <span class="badge">OMS / IMCI</span>
+    <span class="badge">RCH Melbourne</span>
+    <span class="badge">NICE NG29</span>
+    <span class="badge">Offline · sem dependências</span>
+  </div>
+</header>
+
+<main>
+
+<section class="panel" aria-labelledby="h-pac">
+  <h2 id="h-pac">Dados do paciente</h2>
+  <div class="grid">
+    <div class="field">
+      <label for="peso">Peso (kg) <span class="req" aria-hidden="true">*</span></label>
+      <input id="peso" type="number" inputmode="decimal" min="0.3" max="150" step="0.1" placeholder="ex.: 12.5" autocomplete="off">
+      <span class="hint" id="h-peso"></span>
+    </div>
+    <div class="field">
+      <label for="idade">Idade (anos) <span class="req" aria-hidden="true">*</span></label>
+      <input id="idade" type="number" inputmode="decimal" min="0" max="18" step="0.01" placeholder="ex.: 3 · RN = 0" autocomplete="off">
+      <span class="hint" id="h-idade"></span>
+    </div>
+    <div class="field">
+      <label for="via">Via disponível</label>
+      <select id="via">
+        <option value="oral">Oral / enteral</option>
+        <option value="iv">Intravenosa</option>
+      </select>
+      <span class="hint">Define o que é exequível, não a indicação.</span>
+    </div>
+  </div>
+</section>
+
+<div class="tabs" role="tablist" aria-label="Protocolo">
+  <button class="tab" id="tab-oms" role="tab" aria-selected="true" aria-controls="painel-oms" data-proto="OMS">OMS — A / B / C</button>
+  <button class="tab" id="tab-rch" role="tab" aria-selected="false" aria-controls="painel-rch" data-proto="RCH" tabindex="-1">RCH — reposição EV</button>
+  <button class="tab" id="tab-nice" role="tab" aria-selected="false" aria-controls="painel-nice" data-proto="NICE" tabindex="-1">NICE — manutenção + perdas</button>
+</div>
+
+<section class="panel" id="painel-oms" role="tabpanel" aria-labelledby="tab-oms">
+  <h2>OMS — diarreia e desidratação</h2>
+  <div class="grid">
+    <div class="field">
+      <label for="oms-estado">Estado de hidratação</label>
+      <select id="oms-estado">
+        <option value="none">Sem desidratação — Plano A</option>
+        <option value="some">Alguma desidratação — Plano B</option>
+        <option value="severe">Desidratação grave — Plano C</option>
+      </select>
+    </div>
+  </div>
+  <div class="checks">
+    <label class="check"><input type="checkbox" id="oms-diarreia" checked><span>Diarreia aguda (contexto de aplicação do esquema OMS)</span></label>
+    <label class="check"><input type="checkbox" id="choque"><span>Choque ou má perfusão<span><small>Ressuscitação volêmica é conduta separada e prioritária.</small></span></span></label>
+    <label class="check"><input type="checkbox" id="especial"><span>Cardiopatia, nefropatia, distúrbio de sódio ou DKA<span><small>Pode contraindicar o esquema padrão.</small></span></span></label>
+  </div>
+</section>
+
+<section class="panel" id="painel-rch" role="tabpanel" aria-labelledby="tab-rch" hidden>
+  <h2>RCH — fluidoterapia intravenosa</h2>
+  <p class="sub" style="margin-bottom:12px">Manutenção + reposição de até 5% do déficit em 24 h + perdas mensuradas. Aplicável de 1 mês a 18 anos.</p>
+  <div class="grid">
+    <div class="field">
+      <label for="rch-deficit">Déficit estimado (%)</label>
+      <select id="rch-deficit">
+        <option value="0">0%</option>
+        <option value="3">3%</option>
+        <option value="5" selected>5%</option>
+        <option value="7">7%</option>
+        <option value="10">10%</option>
+      </select>
+      <span class="hint">Acima de 5%, repor o excedente após reavaliação.</span>
+    </div>
+    <div class="field">
+      <label for="rch-perdas">Perdas mensuradas (mL/h)</label>
+      <input id="rch-perdas" type="number" inputmode="decimal" min="0" max="10000" step="1" value="0">
+      <span class="hint" id="h-rch-perdas"></span>
+    </div>
+    <div class="field">
+      <label for="rch-fracao">Fração da manutenção</label>
+      <select id="rch-fracao">
+        <option value="1">100%</option>
+        <option value="0.6666666667">2/3</option>
+      </select>
+    </div>
+  </div>
+  <div class="checks" style="margin-top:12px">
+    <label class="check"><input type="checkbox" id="rch-choque"><span>Choque ou má perfusão</span></label>
+    <label class="check"><input type="checkbox" id="rch-especial"><span>Cardiopatia, nefropatia, distúrbio de sódio ou DKA</span></label>
+  </div>
+</section>
+
+<section class="panel" id="painel-nice" role="tabpanel" aria-labelledby="tab-nice" hidden>
+  <h2>NICE — manutenção e reposição selecionada</h2>
+  <p class="sub" style="margin-bottom:12px">Manutenção por Holliday–Segar + déficit no prazo escolhido + perdas contínuas. A NICE não fixa prazo único de reposição: o prazo é decisão clínica.</p>
+  <div class="grid">
+    <div class="field">
+      <label for="nice-deficit">Déficit estimado (%)</label>
+      <select id="nice-deficit">
+        <option value="0" selected>0%</option>
+        <option value="3">3%</option>
+        <option value="5">5%</option>
+        <option value="7">7%</option>
+        <option value="10">10%</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="nice-horas">Prazo de reposição (h)</label>
+      <input id="nice-horas" type="number" inputmode="numeric" min="1" max="72" step="1" value="24">
+      <span class="hint" id="h-nice-horas"></span>
+    </div>
+    <div class="field">
+      <label for="nice-perdas">Perdas atuais (mL/h)</label>
+      <input id="nice-perdas" type="number" inputmode="decimal" min="0" max="10000" step="1" value="0">
+      <span class="hint" id="h-nice-perdas"></span>
+    </div>
+    <div class="field">
+      <label for="nice-fracao">Fração da manutenção</label>
+      <select id="nice-fracao">
+        <option value="1">100%</option>
+        <option value="0.8">80%</option>
+        <option value="0.6666666667">2/3</option>
+        <option value="0.5">50%</option>
+      </select>
+    </div>
+  </div>
+  <div class="checks" style="margin-top:12px">
+    <label class="check"><input type="checkbox" id="nice-choque"><span>Choque ou má perfusão</span></label>
+    <label class="check"><input type="checkbox" id="nice-especial"><span>Cardiopatia, nefropatia, distúrbio de sódio ou DKA</span></label>
+  </div>
+</section>
+
+<section class="panel" aria-labelledby="h-res">
+  <h2 id="h-res">Resultado</h2>
+  <div id="resultado" aria-live="polite" aria-atomic="false">
+    <p class="muted">Informe peso e idade para obter os volumes e as velocidades.</p>
+  </div>
+  <div class="rowbtns">
+    <button class="act" type="button" id="btn-copiar">Copiar resumo</button>
+    <button class="act" type="button" id="btn-imprimir">Imprimir</button>
+    <button class="act" type="button" id="btn-limpar">Limpar</button>
+  </div>
+  <p class="hint" id="status" role="status" aria-live="polite" style="margin-top:8px"></p>
+</section>
+
+<details id="selftest">
+  <summary>Autoteste de cálculo (verificação interna)</summary>
+  <div id="selftest-out" class="muted" style="font-size:12.5px"></div>
+</details>
+
+<details>
+  <summary>Critérios, limites e referências</summary>
+  <ul class="alerts muted" style="font-size:12.5px">
+    <li><strong>OMS A/B/C:</strong> destinados ao manejo de diarreia com avaliação clínica da desidratação. Não são protocolo de choque séptico, cetoacidose, distúrbios relevantes de sódio ou hiper-hidratação. A tabela IMCI clássica foi validada principalmente em menores de 5 anos.</li>
+    <li><strong>Plano A:</strong> SRO após cada evacuação líquida — &lt;2 anos 50–100 mL; 2–10 anos 100–200 mL; &gt;10 anos 200–300 mL, conforme sede e tolerância. Não há volume total calculável apenas pelo peso.</li>
+    <li><strong>Plano B:</strong> 75 mL/kg de SRO em 4 h, por via oral ou sonda, em pequenas quantidades frequentes. Não é infusão intravenosa.</li>
+    <li><strong>Plano C:</strong> 100 mL/kg EV — &lt;12 meses: 30 mL/kg em 1 h e 70 mL/kg em 5 h; ≥12 meses: 30 mL/kg em 30 min e 70 mL/kg em 2,5 h. Ringer lactato ou NaCl 0,9% conforme protocolo.</li>
+    <li><strong>RCH:</strong> manutenção 4-2-1 mL/kg/h (até 10 kg: 4; 10–20 kg: +2; &gt;20 kg: +1); déficit máximo de 5% nas primeiras 24 h na maioria dos casos, com reavaliação. Não se aplica a neonatos &lt;1 mês.</li>
+    <li><strong>NICE NG29:</strong> manutenção por Holliday–Segar (100/50/20 mL/kg/dia); déficit calculado como % do peso e distribuído no prazo definido clinicamente; somar perdas contínuas. Neonatos exigem manutenção por dia de vida.</li>
+    <li><strong>Segurança:</strong> todo resultado é aritmético e referencial. Não substitui avaliação presencial, reavaliação seriada, eletrólitos, glicemia e função renal.</li>
+  </ul>
+</details>
+
+</main>
+
+<footer>
+  <p><strong>Versão 11 — 2026-11-08.</strong> Reconstrução auditada a partir das calculadoras recuperadas do corpus SITESGPTS. Sem dependências externas, sem rastreamento, executável offline.</p>
+  <p class="noprint">Uso profissional. Confira sempre o protocolo institucional vigente. Cálculo matemático não equivale a indicação clínica.</p>
+</footer>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ------------------------------------------------------------------ *
+   * Utilidades
+   * ------------------------------------------------------------------ */
+  var $ = function (id) { return document.getElementById(id); };
+
+  function fmt(v, dec) {
+    if (dec === undefined) { dec = 1; }
+    if (typeof v !== 'number' || !isFinite(v)) { return '—'; }
+    return new Intl.NumberFormat('pt-BR', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: dec
+    }).format(v);
+  }
+  function fmtInt(v) { return fmt(v, 0); }
+  function clamp(v, lo, hi) { return Math.min(Math.max(v, lo), hi); }
+  function num(el) { var v = parseFloat(el.value); return isFinite(v) ? v : NaN; }
+
+  /* ------------------------------------------------------------------ *
+   * Fórmulas — funções puras, testáveis
+   * ------------------------------------------------------------------ */
+
+  // OMS Plano A: SRO após cada evacuação líquida (mL por episódio)
+  function planA(anos) {
+    if (anos < 2) { return { lo: 50, hi: 100, faixa: '< 2 anos' }; }
+    if (anos <= 10) { return { lo: 100, hi: 200, faixa: '2–10 anos' }; }
+    return { lo: 200, hi: 300, faixa: '> 10 anos' };
+  }
+
+  // OMS Plano B: 75 mL/kg em 4 h
+  function planB(peso) {
+    var vol = 75 * peso;
+    return { volume: vol, horas: 4, taxaMedia: vol / 4 };
+  }
+
+  // OMS Plano C: 100 mL/kg, duas etapas
+  function planC(peso, anos) {
+    var lactente = anos < 1;
+    var t1 = lactente ? 1 : 0.5;      // horas
+    var t2 = lactente ? 5 : 2.5;      // horas
+    var v1 = 30 * peso;
+    var v2 = 70 * peso;
+    return {
+      lactente: lactente,
+      etapas: [
+        { nome: '1ª · 30 mL/kg', volume: v1, horas: t1, taxa: v1 / t1 },
+        { nome: '2ª · 70 mL/kg', volume: v2, horas: t2, taxa: v2 / t2 }
+      ],
+      total: 100 * peso,
+      horasTotais: t1 + t2
+    };
+  }
+
+  // Manutenção Holliday–Segar (mL/dia)
+  function hollidayDia(peso) {
+    return Math.min(peso, 10) * 100
+         + clamp(peso - 10, 0, 10) * 50
+         + Math.max(peso - 20, 0) * 20;
+  }
+  function hollidayHora(peso) { return hollidayDia(peso) / 24; }
+
+  // Manutenção RCH (mL/h) — 4-2-1
+  function rchManutencao(peso) {
+    if (peso <= 10) { return 4 * peso; }
+    if (peso <= 20) { return 40 + 2 * (peso - 10); }
+    return 60 + (peso - 20);
+  }
+
+  // Tabela publicada RCH (déficit 5% + manutenção), mL/h — interpolação linear
+  var RCH_TABELA = [
+    [4, 24], [5, 30], [6, 36], [7, 42], [8, 48], [10, 60], [12, 68],
+    [14, 76], [16, 84], [18, 92], [20, 100], [25, 115], [30, 130],
+    [35, 145], [40, 160], [45, 175], [50, 190]
+  ];
+  function rchTabela(peso) {
+    if (peso < 4 || peso > 50) { return null; }
+    for (var i = 0; i < RCH_TABELA.length - 1; i++) {
+      var a = RCH_TABELA[i], b = RCH_TABELA[i + 1];
+      if (peso >= a[0] && peso <= b[0]) {
+        return a[1] + (peso - a[0]) * (b[1] - a[1]) / (b[0] - a[0]);
+      }
+    }
+    return null;
+  }
+
+  // Déficit em mL a partir do percentual de peso
+  function deficitML(peso, pct) { return peso * 10 * pct; }
+
+  function rchCalculo(peso, pct, perdas, fracao) {
+    var manut = rchManutencao(peso) * fracao;
+    var pctEfetivo = Math.min(pct, 5);
+    var defDia = deficitML(peso, pctEfetivo);
+    var defTaxa = defDia / 24;
+    var total = manut + defTaxa + perdas;
+    return {
+      manut: manut, defDia: defDia, defTaxa: defTaxa,
+      perdas: perdas, total: total, volume24: total * 24,
+      pctEfetivo: pctEfetivo, excede: pct > 5, tabela: rchTabela(peso)
+    };
+  }
+
+  function niceCalculo(peso, pct, horas, perdas, fracao) {
+    var manutDia = hollidayDia(peso);
+    var manutHora = manutDia / 24 * fracao;
+    var def = deficitML(peso, pct);
+    var defTaxa = def / horas;
+    var total = manutHora + defTaxa + perdas;
+    return {
+      manutDia: manutDia * fracao, manutHora: manutHora,
+      def: def, defTaxa: defTaxa, perdas: perdas,
+      total: total, volume24: total * 24, horas: horas
+    };
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Estado e validação
+   * ------------------------------------------------------------------ */
+  var STORE_KEY = 'reidrat_ped_v11';
+  var proto = 'OMS';
+  var timer = null;
+
+  function lerPaciente() {
+    var pesoEl = $('peso'), idadeEl = $('idade');
+    var peso = num(pesoEl), anos = num(idadeEl);
+    var erros = [];
+
+    var pesoOk = isFinite(peso) && peso >= 0.3 && peso <= 150;
+    var idadeOk = isFinite(anos) && anos >= 0 && anos < 18;
+
+    pesoEl.setAttribute('aria-invalid', pesoOk ? 'false' : 'true');
+    idadeEl.setAttribute('aria-invalid', idadeOk ? 'false' : 'true');
+
+    if (!$('peso').value.trim()) {
+      erros.push('Informe o peso.');
+      $('h-peso').textContent = 'Campo obrigatório.';
+      $('h-peso').className = 'hint err';
+    } else if (!pesoOk) {
+      erros.push('Peso fora da faixa aceita (0,3 a 150 kg).');
+      $('h-peso').textContent = 'Aceita 0,3 a 150 kg.';
+      $('h-peso').className = 'hint err';
+    } else {
+      $('h-peso').textContent = '';
+      $('h-peso').className = 'hint';
+    }
+
+    if (!$('idade').value.trim()) {
+      erros.push('Informe a idade.');
+      $('h-idade').textContent = 'Campo obrigatório. Use 0 para recém-nascido.';
+      $('h-idade').className = 'hint err';
+    } else if (!idadeOk) {
+      erros.push('Idade fora da faixa pediátrica (0 a 18 anos incompletos).');
+      $('h-idade').textContent = 'Aceita 0 a 18 anos incompletos.';
+      $('h-idade').className = 'hint err';
+    } else {
+      $('h-idade').textContent = '';
+      $('h-idade').className = 'hint';
+    }
+
+    return { peso: peso, anos: anos, erros: erros, ok: pesoOk && idadeOk };
+  }
+
+  function ehNeonato(anos) { return anos < (1 / 12); }
+
+  /* ------------------------------------------------------------------ *
+   * Renderização
+   * ------------------------------------------------------------------ */
+  function kpi(chave, valor, nota) {
+    return '<div class="kpi"><span class="k">' + chave + '</span>' +
+           '<span class="v">' + valor + '</span>' +
+           '<span class="n">' + nota + '</span></div>';
+  }
+
+  function tabela(cabecalhos, linhas, legenda) {
+    var h = '<table><caption>' + (legenda || '') + '</caption><thead><tr>';
+    for (var i = 0; i < cabecalhos.length; i++) {
+      h += '<th scope="col"' + (i > 0 ? ' class="num"' : '') + '>' + cabecalhos[i] + '</th>';
+    }
+    h += '</tr></thead><tbody>';
+    for (var r = 0; r < linhas.length; r++) {
+      h += '<tr>';
+      for (var c = 0; c < linhas[r].length; c++) {
+        var cel = linhas[r][c];
+        var forte = (c > 0 && linhas[r].length > 2) ? '<strong>' + cel + '</strong>' : cel;
+        h += '<td' + (c > 0 ? ' class="num"' : '') + '>' + forte + '</td>';
+      }
+      h += '</tr>';
+    }
+    return h + '</tbody></table>';
+  }
+
+  function alertas(lista) {
+    if (!lista.length) { return ''; }
+    var h = '<div class="warnbox" role="note"><strong>Atenção clínica</strong><ul class="alerts" style="margin-top:6px">';
+    for (var i = 0; i < lista.length; i++) { h += '<li>' + lista[i] + '</li>'; }
+    return h + '</ul></div>';
+  }
+
+  function renderOMS(peso, anos) {
+    var estado = $('oms-estado').value;
+    var via = $('via').value;
+    var alertasList = [];
+    var html = '';
+
+    if ($('oms-diarreia').checked === false) {
+      alertasList.push('Sem diarreia aguda declarada: confirme se o esquema OMS é o protocolo aplicável a este quadro.');
+    }
+
+    if (estado === 'none') {
+      var a = planA(anos);
+      html += '<h3>Plano A — sem desidratação</h3>';
+      html += '<div class="kpis">' +
+        kpi('SRO por evacuação', fmt(a.lo) + '–' + fmt(a.hi) + ' mL', 'Faixa para ' + a.faixa) +
+        kpi('Via', 'Oral', 'Pequenos volumes frequentes') +
+        kpi('Duração', 'Conforme perdas', 'Reavaliar evolução') +
+        '</div>';
+      html += '<div class="note">Plano A não tem volume total calculável apenas pelo peso. Manter alimentação e líquidos; orientar sinais de retorno.</div>';
+
+    } else if (estado === 'some') {
+      var b = planB(peso);
+      html += '<h3>Plano B — alguma desidratação</h3>';
+      html += '<div class="kpis">' +
+        kpi('SRO total', fmt(b.volume, 0) + ' mL', '75 mL/kg') +
+        kpi('Tempo', '4 h', 'Reavaliar ao final') +
+        kpi('Equivalente horário', fmt(b.taxaMedia) + ' mL/h', 'Oral/enteral — não é BIC') +
+        '</div>';
+      html += tabela(['Administração', 'Volume', 'Taxa média'],
+        [['SRO oral ou por sonda', fmt(b.volume, 0) + ' mL', fmt(b.taxaMedia) + ' mL/h']],
+        'Plano B — reidratação por via enteral');
+      if (via === 'iv') {
+        alertasList.push('<strong>Plano B não é infusão intravenosa.</strong> Se a via oral/enteral não for segura, o caso é de outra conduta — não converter este volume em BIC.');
+      }
+
+    } else {
+      var c = planC(peso, anos);
+      html += '<h3>Plano C — desidratação grave</h3>';
+      html += '<div class="kpis">' +
+        kpi('Volume EV total', fmt(c.total, 0) + ' mL', '100 mL/kg em ' + fmt(c.horasTotais) + ' h') +
+        kpi('1ª etapa', fmt(c.etapas[0].volume, 0) + ' mL', fmt(c.etapas[0].taxa) + ' mL/h por ' + fmt(c.etapas[0].horas * 60, 0) + ' min') +
+        kpi('2ª etapa', fmt(c.etapas[1].volume, 0) + ' mL', fmt(c.etapas[1].taxa) + ' mL/h por ' + fmt(c.etapas[1].horas * 60, 0) + ' min') +
+        '</div>';
+      html += tabela(['Etapa', 'Volume', 'Duração', 'Bomba (mL/h)'], [
+        [c.etapas[0].nome, fmt(c.etapas[0].volume, 0) + ' mL', fmt(c.etapas[0].horas * 60, 0) + ' min', fmt(c.etapas[0].taxa)],
+        [c.etapas[1].nome, fmt(c.etapas[1].volume, 0) + ' mL', fmt(c.etapas[1].horas * 60, 0) + ' min', fmt(c.etapas[1].taxa)]
+      ], 'Plano C — ' + (c.lactente ? 'lactente < 12 meses' : '≥ 12 meses'));
+      html += '<div class="note">Ringer lactato ou NaCl 0,9% conforme protocolo. Reavaliar perfusão, diurese e estado de hidratação durante a infusão; não é esquema para choque de outra etiologia.</div>';
+      if (via === 'oral') {
+        alertasList.push('Plano C exige via intravenosa. A via selecionada foi oral/enteral.');
+      }
+    }
+
+    if (anos > 5) {
+      alertasList.push('Idade acima de 5 anos: a tabela IMCI clássica foi validada principalmente em menores de 5 anos. Confirmar o protocolo institucional para essa faixa.');
+    }
+    if (anos >= 10 && estado === 'none') {
+      alertasList.push('Acima de 10 anos, orientar SRO conforme sede e tolerância, sem volume fixo por episódio.');
+    }
+    if (peso > 40) {
+      alertasList.push('Peso acima de 40 kg: conferir se o esquema pediátrico ainda é o adequado ou se cabe protocolo de adulto.');
+    }
+
+    return html + alertas(alertasList);
+  }
+
+  function renderRCH(peso, anos) {
+    var pct = parseFloat($('rch-deficit').value);
+    var perdas = num($('rch-perdas'));
+    var fracao = parseFloat($('rch-fracao').value);
+    var alertasList = [];
+
+    if (!isFinite(perdas) || perdas < 0 || perdas > 10000) {
+      $('h-rch-perdas').textContent = 'Informe perdas entre 0 e 10.000 mL/h.';
+      $('h-rch-perdas').className = 'hint err';
+      return '<div class="errbox">Corrija as perdas informadas para calcular.</div>';
+    }
+    $('h-rch-perdas').textContent = '';
+    $('h-rch-perdas').className = 'hint';
+
+    var r = rchCalculo(peso, pct, perdas, fracao);
+    var html = '<h3>RCH — manutenção e reposição</h3>';
+    html += '<div class="kpis">' +
+      kpi('Volume em 24 h', fmt(r.volume24, 0) + ' mL', 'Manutenção + déficit + perdas') +
+      kpi('Velocidade da bomba', fmt(r.total) + ' mL/h', 'Taxa calculada') +
+      kpi('Déficit em 24 h', fmt(r.defDia, 0) + ' mL', r.excede ? 'Reposição limitada a 5%' : 'Reposição de ' + fmt(pct) + '%') +
+      '</div>';
+    html += tabela(['Componente', 'Volume em 24 h', 'Taxa (mL/h)'], [
+      ['Manutenção (' + fmt(fracao * 100, 0) + '%)', fmt(r.manut * 24, 0) + ' mL', fmt(r.manut)],
+      ['Déficit até 5%', fmt(r.defDia, 0) + ' mL', fmt(r.defTaxa)],
+      ['Perdas contínuas', fmt(r.perdas * 24, 0) + ' mL', fmt(r.perdas)],
+      ['Total', fmt(r.volume24, 0) + ' mL', fmt(r.total)]
+    ], 'RCH — composição da taxa');
+
+    if (r.tabela !== null && pct === 5 && fracao === 1 && perdas === 0) {
+      html += '<div class="note">Referência pela tabela publicada RCH (manutenção + 5%): <strong>' + fmt(r.tabela) + ' mL/h</strong>. O cálculo por volume exato difere da tabela arredondada em até cerca de 1 mL/h.</div>';
+    }
+    if (r.excede) {
+      alertasList.push('Déficit informado acima de 5%: a reposição nas primeiras 24 h foi limitada a 5%. Reavaliar antes de repor o excedente.');
+    }
+    if (anos < (1 / 12)) {
+      alertasList.push('<strong>RCH não se aplica a neonatos com menos de 1 mês.</strong> Usar manutenção por dia de vida.');
+    }
+    return html + alertas(alertasList);
+  }
+
+  function renderNICE(peso, anos) {
+    var pct = parseFloat($('nice-deficit').value);
+    var horas = num($('nice-horas'));
+    var perdas = num($('nice-perdas'));
+    var fracao = parseFloat($('nice-fracao').value);
+    var alertasList = [];
+
+    if (!isFinite(horas) || horas < 1 || horas > 72) {
+      $('h-nice-horas').textContent = 'Informe prazo entre 1 e 72 h.';
+      $('h-nice-horas').className = 'hint err';
+      return '<div class="errbox">Corrija o prazo de reposição para calcular.</div>';
+    }
+    $('h-nice-horas').textContent = '';
+    $('h-nice-horas').className = 'hint';
+
+    if (!isFinite(perdas) || perdas < 0 || perdas > 10000) {
+      $('h-nice-perdas').textContent = 'Informe perdas entre 0 e 10.000 mL/h.';
+      $('h-nice-perdas').className = 'hint err';
+      return '<div class="errbox">Corrija as perdas informadas para calcular.</div>';
+    }
+    $('h-nice-perdas').textContent = '';
+    $('h-nice-perdas').className = 'hint';
+
+    var n = niceCalculo(peso, pct, horas, perdas, fracao);
+    var html = '<h3>NICE — manutenção e reposição selecionada</h3>';
+    html += '<div class="kpis">' +
+      kpi('Velocidade da bomba', fmt(n.total) + ' mL/h', 'Manutenção + déficit + perdas') +
+      kpi('Volume em 24 h', fmt(n.volume24, 0) + ' mL', 'Se a taxa se mantiver') +
+      kpi('Déficit a repor', fmt(n.def, 0) + ' mL', 'Em ' + fmt(horas, 0) + ' h') +
+      '</div>';
+    html += tabela(['Componente', 'Volume', 'Taxa (mL/h)'], [
+      ['Manutenção (' + fmt(fracao * 100, 0) + '% de ' + fmt(n.manutDia / fracao, 0) + ' mL/dia)', fmt(n.manutDia, 0) + ' mL/dia', fmt(n.manutHora)],
+      ['Déficit de ' + fmt(pct) + '% em ' + fmt(horas, 0) + ' h', fmt(n.def, 0) + ' mL', fmt(n.defTaxa)],
+      ['Perdas contínuas', fmt(n.perdas * 24, 0) + ' mL/dia', fmt(n.perdas)],
+      ['Total programado', fmt(n.volume24, 0) + ' mL/24 h*', fmt(n.total)]
+    ], 'NICE — composição da taxa');
+    html += '<div class="note">*A extrapolação de 24 h é aritmética: reprogramar ao concluir a reposição do déficit selecionado.</div>';
+
+    if (anos < (1 / 12)) {
+      alertasList.push('<strong>Recém-nascido:</strong> a manutenção por Holliday–Segar não se aplica. Calcular por dia de vida e considerar glicose, sódio e potássio.');
+    }
+    return html + alertas(alertasList);
+  }
+
+  function render() {
+    clearTimeout(timer);
+    timer = setTimeout(executar, 90);
+  }
+
+  function executar() {
+    var p = lerPaciente();
+    var out = $('resultado');
+
+    if (!p.ok) {
+      out.innerHTML = '<div class="errbox">' +
+        (p.erros.length ? p.erros.join(' ') : 'Preencha peso e idade para calcular.') +
+        '</div><p class="muted" style="font-size:12.5px">Nenhum paciente fictício é usado: o cálculo só existe para os dados informados.</p>';
+      return;
+    }
+
+    var html;
+    if (proto === 'OMS') { html = renderOMS(p.peso, p.anos); }
+    else if (proto === 'RCH') { html = renderRCH(p.peso, p.anos); }
+    else { html = renderNICE(p.peso, p.anos); }
+
+    // Alertas transversais
+    var transversais = [];
+    var choque = $('choque').checked || $('rch-choque').checked || $('nice-choque').checked;
+    var especial = $('especial').checked || $('rch-especial').checked || $('nice-especial').checked;
+    if (choque) {
+      transversais.push('<strong>Choque ou má perfusão:</strong> priorizar ressuscitação volêmica e reavaliação imediatas — não é a soma de manutenção e déficit.');
+    }
+    if (especial) {
+      transversais.push('<strong>Condição especial:</strong> cardiopatia, nefropatia, distúrbio de sódio ou DKA podem contraindicar o esquema padrão. Individualizar volume e sódio.');
+    }
+    if (ehNeonato(p.anos)) {
+      transversais.push('Faixa neonatal: conferir elegibilidade do protocolo e a necessidade de glicose.');
+    }
+    if (transversais.length) {
+      html += '<div class="errbox" role="alert"><strong>Alertas de segurança</strong><ul class="alerts" style="margin-top:6px">' +
+        transversais.map(function (t) { return '<li>' + t + '</li>'; }).join('') + '</ul></div>';
+    }
+
+    html += '<p class="muted" style="font-size:11.5px;margin:10px 0 0">Protocolo: <strong>' + proto +
+      '</strong> · Peso ' + fmt(p.peso) + ' kg · Idade ' + fmt(p.anos, 2) + ' anos · ' +
+      new Date().toLocaleString('pt-BR') + '</p>';
+
+    out.innerHTML = html;
+    salvar();
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Persistência, cópia e utilidades
+   * ------------------------------------------------------------------ */
+  var CAMPOS = ['peso','idade','via','oms-estado','rch-deficit','rch-perdas','rch-fracao',
+                'nice-deficit','nice-horas','nice-perdas','nice-fracao'];
+
+  function salvar() {
+    try {
+      var dados = { proto: proto };
+      CAMPOS.forEach(function (id) { var el = $(id); if (el) { dados[id] = el.value; } });
+      ['oms-diarreia','choque','especial','rch-choque','rch-especial','nice-choque','nice-especial']
+        .forEach(function (id) { var el = $(id); if (el) { dados[id] = el.checked; } });
+      localStorage.setItem(STORE_KEY, JSON.stringify(dados));
+    } catch (e) { /* armazenamento indisponível: seguir sem persistir */ }
+  }
+
+  function carregar() {
+    try {
+      var raw = localStorage.getItem(STORE_KEY);
+      if (!raw) { return; }
+      var d = JSON.parse(raw);
+      CAMPOS.forEach(function (id) { var el = $(id); if (el && d[id] !== undefined) { el.value = d[id]; } });
+      ['oms-diarreia','choque','especial','rch-choque','rch-especial','nice-choque','nice-especial']
+        .forEach(function (id) { var el = $(id); if (el && typeof d[id] === 'boolean') { el.checked = d[id]; } });
+      if (d.proto) { trocarProto(d.proto, true); }
+    } catch (e) { /* estado corrompido: ignorar */ }
+  }
+
+  function resumoTexto() {
+    var p = lerPaciente();
+    if (!p.ok) { return ''; }
+    var linhas = ['REIDRATAÇÃO PEDIÁTRICA — resumo', 'Protocolo: ' + proto,
+      'Peso: ' + fmt(p.peso) + ' kg | Idade: ' + fmt(p.anos, 2) + ' anos', ''];
+    var node = $('resultado').cloneNode(true);
+    node.querySelectorAll('p.muted').forEach(function (el) { el.remove(); });
+    var txt = (node.innerText || node.textContent || '').replace(/\n{3,}/g, '\n\n').trim();
+    return linhas.join('\n') + '\n' + txt + '\n\nCálculo aritmético referencial. Não substitui avaliação clínica.';
+  }
+
+  function aviso(msg, tipo) {
+    var st = $('status');
+    st.textContent = msg;
+    st.className = 'hint' + (tipo === 'err' ? ' err' : '');
+    setTimeout(function () { if (st.textContent === msg) { st.textContent = ''; } }, 4000);
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Navegação entre protocolos
+   * ------------------------------------------------------------------ */
+  function trocarProto(novo, silencioso) {
+    proto = novo;
+    document.querySelectorAll('[data-proto]').forEach(function (b) {
+      var sel = b.dataset.proto === novo;
+      b.setAttribute('aria-selected', sel ? 'true' : 'false');
+      b.tabIndex = sel ? 0 : -1;
+    });
+    ['oms','rch','nice'].forEach(function (k) {
+      var painel = $('painel-' + k);
+      if (painel) { painel.hidden = (k !== novo.toLowerCase()); }
+    });
+    if (!silencioso) { executar(); }
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Autoteste
+   * ------------------------------------------------------------------ */
+  function autoteste() {
+    var casos = [];
+    function t(nome, obtido, esperado, tol) {
+      var ok = (tol === undefined)
+        ? JSON.stringify(obtido) === JSON.stringify(esperado)
+        : Math.abs(obtido - esperado) <= tol;
+      casos.push({ nome: nome, ok: ok, obtido: obtido, esperado: esperado });
+    }
+
+    // Plano A
+    t('Plano A · 1 ano', planA(1).lo + '-' + planA(1).hi, '50-100');
+    t('Plano A · 5 anos', planA(5).lo + '-' + planA(5).hi, '100-200');
+    t('Plano A · 12 anos', planA(12).lo + '-' + planA(12).hi, '200-300');
+    // Plano B
+    t('Plano B · 8 kg', planB(8).volume, 600);
+    t('Plano B · taxa 8 kg', planB(8).taxaMedia, 150);
+    // Plano C
+    var c1 = planC(10, 0.5);
+    t('Plano C · lactente 1ª etapa', c1.etapas[0].volume, 300);
+    t('Plano C · lactente 2ª etapa', c1.etapas[1].volume, 700);
+    t('Plano C · lactente total', c1.total, 1000);
+    var c2 = planC(10, 5);
+    t('Plano C · criança 1ª taxa', c2.etapas[0].taxa, 600);
+    t('Plano C · criança 2ª taxa', c2.etapas[1].taxa, 280);
+    t('Plano C · criança duração', c2.horasTotais, 3);
+    // Manutenção
+    t('Holliday · 10 kg', hollidayDia(10), 1000);
+    t('Holliday · 20 kg', hollidayDia(20), 1500);
+    t('Holliday · 30 kg', hollidayDia(30), 1700);
+    t('Holliday · 3,5 kg', hollidayDia(3.5), 350);
+    t('RCH · 10 kg', rchManutencao(10), 40);
+    t('RCH · 20 kg', rchManutencao(20), 60);
+    t('RCH · 30 kg', rchManutencao(30), 70);
+    // Déficit
+    t('Déficit 5% · 10 kg', deficitML(10, 5), 500);
+    t('Déficit 3% · 12 kg', deficitML(12, 3), 360);
+    // RCH composto
+    var r = rchCalculo(10, 5, 0, 1);
+    t('RCH total · 10 kg / 5%', r.total, 60.83, 0.05);
+    t('RCH tabela · 10 kg', r.tabela, 60, 0.001);
+    t('RCH tabela · 4 kg', rchTabela(4), 24);
+    t('RCH tabela · 50 kg', rchTabela(50), 190);
+    t('RCH tabela fora da faixa', rchTabela(3), null);
+    // NICE composto
+    var n = niceCalculo(10, 0, 24, 0, 1);
+    t('NICE manutenção · 10 kg', n.total, 41.67, 0.01);
+    var n2 = niceCalculo(10, 5, 24, 0, 1);
+    t('NICE total · 10 kg / 5%', n2.total, 62.5, 0.01);
+    // Robustez
+    t('Sem NaN em peso mínimo', isFinite(hollidayDia(0.3)), true);
+    t('Sem NaN em peso máximo', isFinite(hollidayDia(150)), true);
+    t('Sem divisão por zero', isFinite(planB(0.3).taxaMedia), true);
+
+    var ok = casos.filter(function (c) { return c.ok; }).length;
+    var html = '<p class="' + (ok === casos.length ? 'okbox' : 'errbox') + '" style="margin:0 0 10px">' +
+      '<strong>Autoteste: ' + ok + '/' + casos.length + ' verificações OK.</strong> ' +
+      (ok === casos.length ? 'Fórmulas consistentes.' : 'Há divergências — revisar antes do uso.') + '</p>';
+    html += '<table><thead><tr><th scope="col">Verificação</th><th scope="col">Obtido</th><th scope="col" class="num">Esperado</th><th scope="col">Status</th></tr></thead><tbody>';
+    casos.forEach(function (c) {
+      html += '<tr><td>' + c.nome + '</td><td>' + String(c.obtido) + '</td><td class="num">' +
+              String(c.esperado) + '</td><td>' + (c.ok ? '<span style="color:var(--ok)">OK</span>' : '<span style="color:var(--danger)">FALHA</span>') + '</td></tr>';
+    });
+    html += '</tbody></table>';
+    $('selftest-out').innerHTML = html;
+    return { ok: ok, total: casos.length };
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Eventos
+   * ------------------------------------------------------------------ */
+  function bind() {
+    ['peso','idade','via','oms-estado','rch-deficit','rch-perdas','rch-fracao',
+     'nice-deficit','nice-horas','nice-perdas','nice-fracao']
+      .forEach(function (id) {
+        var el = $(id);
+        if (!el) { return; }
+        el.addEventListener('input', render);
+        el.addEventListener('change', render);
+      });
+
+    ['oms-diarreia','choque','especial','rch-choque','rch-especial','nice-choque','nice-especial']
+      .forEach(function (id) {
+        var el = $(id);
+        if (el) { el.addEventListener('change', render); }
+      });
+
+    document.querySelectorAll('[data-proto]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        trocarProto(btn.dataset.proto);
+        salvar();
+      });
+      btn.addEventListener('keydown', function (ev) {
+        if (ev.key === 'ArrowRight' || ev.key === 'ArrowLeft') {
+          ev.preventDefault();
+          var ordem = ['OMS', 'RCH', 'NICE'];
+          var i = ordem.indexOf(proto);
+          var j = ev.key === 'ArrowRight' ? (i + 1) % 3 : (i + 2) % 3;
+          trocarProto(ordem[j]);
+          salvar();
+          var alvo = document.querySelector('[data-proto="' + ordem[j] + '"]');
+          if (alvo) { alvo.focus(); }
+        }
+      });
+    });
+
+    $('btn-copiar').addEventListener('click', function () {
+      var txt = resumoTexto();
+      if (!txt) { aviso('Preencha peso e idade antes de copiar.', 'err'); return; }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(txt).then(function () {
+          aviso('Resumo copiado.');
+        }).catch(function () {
+          aviso('Não foi possível copiar automaticamente. Use Imprimir.', 'err');
+        });
+      } else {
+        aviso('Copiar não é suportado neste navegador. Use Imprimir.', 'err');
+      }
+    });
+
+    $('btn-imprimir').addEventListener('click', function () { window.print(); });
+
+    $('btn-limpar').addEventListener('click', function () {
+      ['peso','idade','rch-perdas','nice-perdas'].forEach(function (id) { if ($(id)) { $(id).value = ''; } });
+      $('oms-estado').value = 'none';
+      $('rch-deficit').value = '5';
+      $('nice-deficit').value = '0';
+      $('rch-fracao').value = '1';
+      $('nice-fracao').value = '1';
+      $('nice-horas').value = '24';
+      $('via').value = 'oral';
+      ['oms-diarreia','choque','especial','rch-choque','rch-especial','nice-choque','nice-especial']
+        .forEach(function (id) { var el = $(id); if (el) { el.checked = (id === 'oms-diarreia'); } });
+      try { localStorage.removeItem(STORE_KEY); } catch (e) { /* ignorar */ }
+      executar();
+      aviso('Campos limpos.');
+      $('peso').focus();
+    });
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Inicialização
+   * ------------------------------------------------------------------ */
+  function init() {
+    bind();
+    carregar();
+    autoteste();
+    // Se o usuário já tinha dados salvos, recalcular; caso contrário, mostrar estado vazio.
+    if ($('peso').value.trim() && $('idade').value.trim()) { executar(); }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
+</body>
+</html>
