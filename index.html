@@ -262,11 +262,11 @@
   <summary>Critérios, limites e referências</summary>
   <ul class="alerts muted" style="font-size:12.5px">
     <li><strong>OMS A/B/C:</strong> destinados ao manejo de diarreia com avaliação clínica da desidratação. Não são protocolo de choque séptico, cetoacidose, distúrbios relevantes de sódio ou hiper-hidratação. A tabela IMCI clássica foi validada principalmente em menores de 5 anos.</li>
-    <li><strong>Plano A:</strong> SRO após cada evacuação líquida — &lt;2 anos 50–100 mL; 2–10 anos 100–200 mL; &gt;10 anos 200–300 mL, conforme sede e tolerância. Não há volume total calculável apenas pelo peso.</li>
+    <li><strong>Plano A:</strong> SRO após cada evacuação líquida — &lt;2 anos 50–100 mL; 2–10 anos 100–200 mL; &gt;10 anos à vontade, conforme sede e aceitação (a OMS não fixa volume nessa faixa). Não há volume total calculável apenas pelo peso. Zinco oral 1 vez ao dia por 10–14 dias em menores de 5 anos: 10 mg/dia abaixo de 6 meses e 20 mg/dia a partir de 6 meses (OMS/UNICEF).</li>
     <li><strong>Plano B:</strong> 75 mL/kg de SRO em 4 h, por via oral ou sonda, em pequenas quantidades frequentes. Não é infusão intravenosa.</li>
     <li><strong>Plano C:</strong> 100 mL/kg EV — &lt;12 meses: 30 mL/kg em 1 h e 70 mL/kg em 5 h; ≥12 meses: 30 mL/kg em 30 min e 70 mL/kg em 2,5 h. Ringer lactato ou NaCl 0,9% conforme protocolo.</li>
-    <li><strong>RCH:</strong> manutenção 4-2-1 mL/kg/h (até 10 kg: 4; 10–20 kg: +2; &gt;20 kg: +1); déficit máximo de 5% nas primeiras 24 h na maioria dos casos, com reavaliação. Não se aplica a neonatos &lt;1 mês.</li>
-    <li><strong>NICE NG29:</strong> manutenção por Holliday–Segar (100/50/20 mL/kg/dia); déficit calculado como % do peso e distribuído no prazo definido clinicamente; somar perdas contínuas. Neonatos exigem manutenção por dia de vida.</li>
+    <li><strong>RCH:</strong> manutenção 4-2-1 mL/kg/h (até 10 kg: 4; 10–20 kg: +2; &gt;20 kg: +1), com máximo habitual de 100 mL/h (2.400 mL/dia) acima de 60 kg; abaixo de 4 kg a taxa de reidratação é definida com médico sênior; déficit máximo de 5% nas primeiras 24 h na maioria dos casos, com reavaliação. Não se aplica a neonatos &lt;1 mês.</li>
+    <li><strong>NICE NG29:</strong> manutenção por Holliday–Segar (100/50/20 mL/kg/dia), lembrando que em 24 h raramente são necessários mais de 2.500 mL (sexo masculino) ou 2.000 mL (sexo feminino); déficit calculado como % do peso e distribuído no prazo definido clinicamente; somar perdas contínuas. Neonatos exigem manutenção por dia de vida.</li>
     <li><strong>Segurança:</strong> todo resultado é aritmético e referencial. Não substitui avaliação presencial, reavaliação seriada, eletrólitos, glicemia e função renal.</li>
   </ul>
 </details>
@@ -307,7 +307,16 @@
   function planA(anos) {
     if (anos < 2) { return { lo: 50, hi: 100, faixa: '< 2 anos' }; }
     if (anos <= 10) { return { lo: 100, hi: 200, faixa: '2–10 anos' }; }
-    return { lo: 200, hi: 300, faixa: '> 10 anos' };
+    // OMS (2005): crianças maiores e adultos tomam à vontade — não há volume fixo por evacuação
+    return { lo: null, hi: null, livre: true, faixa: '> 10 anos' };
+  }
+
+  // Zinco na diarreia aguda (OMS/UNICEF 2004): 10 mg/dia < 6 meses; 20 mg/dia a partir de 6 meses,
+  // por 10–14 dias. Exibido para menores de 5 anos.
+  function zincoTexto(anos) {
+    if (!(anos < 5)) { return ''; }
+    return ' <strong>Zinco oral:</strong> ' + (anos < 0.5 ? '10' : '20') +
+      ' mg 1 vez ao dia por 10 a 14 dias (OMS/UNICEF: 10 mg/dia em menores de 6 meses; 20 mg/dia a partir de 6 meses).';
   }
 
   // OMS Plano B: 75 mL/kg em 4 h
@@ -346,7 +355,8 @@
   function rchManutencao(peso) {
     if (peso <= 10) { return 4 * peso; }
     if (peso <= 20) { return 40 + 2 * (peso - 10); }
-    return 60 + (peso - 20);
+    // RCH: acima de 60 kg o máximo habitual é 100 mL/h (2.400 mL/dia)
+    return Math.min(60 + (peso - 20), 100);
   }
 
   // Tabela publicada RCH (déficit 5% + manutenção), mL/h — interpolação linear
@@ -492,11 +502,12 @@
       var a = planA(anos);
       html += '<h3>Plano A — sem desidratação</h3>';
       html += '<div class="kpis">' +
-        kpi('SRO por evacuação', fmt(a.lo) + '–' + fmt(a.hi) + ' mL', 'Faixa para ' + a.faixa) +
+        kpi('SRO por evacuação', a.livre ? 'À vontade' : fmt(a.lo) + '–' + fmt(a.hi) + ' mL',
+          a.livre ? 'Conforme sede e aceitação (' + a.faixa + ')' : 'Faixa para ' + a.faixa) +
         kpi('Via', 'Oral', 'Pequenos volumes frequentes') +
         kpi('Duração', 'Conforme perdas', 'Reavaliar evolução') +
         '</div>';
-      html += '<div class="note">Plano A não tem volume total calculável apenas pelo peso. Manter alimentação e líquidos; orientar sinais de retorno.</div>';
+      html += '<div class="note">Plano A não tem volume total calculável apenas pelo peso. Manter alimentação e líquidos; orientar sinais de retorno.' + zincoTexto(anos) + '</div>';
 
     } else if (estado === 'some') {
       var b = planB(peso);
@@ -509,6 +520,8 @@
       html += tabela(['Administração', 'Volume', 'Taxa média'],
         [['SRO oral ou por sonda', fmt(b.volume, 0) + ' mL', fmt(b.taxaMedia) + ' mL/h']],
         'Plano B — reidratação por via enteral');
+      html += '<div class="note">Reavaliar ao final das 4 h: sem sinais de desidratação, passar ao Plano A; se persistirem, repetir o Plano B; se agravar, Plano C.' +
+        (anos < 5 ? ' Iniciar o zinco assim que a criança voltar a se alimentar.' : '') + zincoTexto(anos) + '</div>';
       if (via === 'iv') {
         alertasList.push('<strong>Plano B não é infusão intravenosa.</strong> Se a via oral/enteral não for segura, o caso é de outra conduta — não converter este volume em BIC.');
       }
@@ -534,7 +547,7 @@
     if (anos > 5) {
       alertasList.push('Idade acima de 5 anos: a tabela IMCI clássica foi validada principalmente em menores de 5 anos. Confirmar o protocolo institucional para essa faixa.');
     }
-    if (anos >= 10 && estado === 'none') {
+    if (anos > 10 && estado === 'none') {
       alertasList.push('Acima de 10 anos, orientar SRO conforme sede e tolerância, sem volume fixo por episódio.');
     }
     if (peso > 40) {
@@ -581,6 +594,12 @@
     if (anos < (1 / 12)) {
       alertasList.push('<strong>RCH não se aplica a neonatos com menos de 1 mês.</strong> Usar manutenção por dia de vida.');
     }
+    if (peso > 60) {
+      alertasList.push('Peso acima de 60 kg: a manutenção foi limitada a 100 mL/h (2.400 mL/dia), máximo habitual da RCH. Considerar o peso ideal no cálculo.');
+    }
+    if (peso < 4) {
+      alertasList.push('Peso abaixo de 4 kg: a RCH orienta definir a taxa de reidratação com médico sênior.');
+    }
     return html + alertas(alertasList);
   }
 
@@ -625,6 +644,9 @@
     if (anos < (1 / 12)) {
       alertasList.push('<strong>Recém-nascido:</strong> a manutenção por Holliday–Segar não se aplica. Calcular por dia de vida e considerar glicose, sódio e potássio.');
     }
+    if (hollidayDia(peso) > 2000) {
+      alertasList.push('Manutenção plena calculada em ' + fmt(hollidayDia(peso), 0) + ' mL/dia. A NICE lembra que em 24 h raramente são necessários mais de 2.500 mL (sexo masculino) ou 2.000 mL (sexo feminino): considerar limitar a manutenção.');
+    }
     return html + alertas(alertasList);
   }
 
@@ -668,7 +690,7 @@
     }
 
     html += '<p class="muted" style="font-size:11.5px;margin:10px 0 0">Protocolo: <strong>' + proto +
-      '</strong> · Peso ' + fmt(p.peso) + ' kg · Idade ' + fmt(p.anos, 2) + ' anos · ' +
+      '</strong> · Peso ' + fmt(p.peso, 3) + ' kg · Idade ' + fmt(p.anos, 2) + ' anos · ' +
       new Date().toLocaleString('pt-BR') + '</p>';
 
     out.innerHTML = html;
@@ -707,7 +729,7 @@
     var p = lerPaciente();
     if (!p.ok) { return ''; }
     var linhas = ['REIDRATAÇÃO PEDIÁTRICA — resumo', 'Protocolo: ' + proto,
-      'Peso: ' + fmt(p.peso) + ' kg | Idade: ' + fmt(p.anos, 2) + ' anos', ''];
+      'Peso: ' + fmt(p.peso, 3) + ' kg | Idade: ' + fmt(p.anos, 2) + ' anos', ''];
     var node = $('resultado').cloneNode(true);
     node.querySelectorAll('p.muted').forEach(function (el) { el.remove(); });
     var txt = (node.innerText || node.textContent || '').replace(/\n{3,}/g, '\n\n').trim();
@@ -753,7 +775,7 @@
     // Plano A
     t('Plano A · 1 ano', planA(1).lo + '-' + planA(1).hi, '50-100');
     t('Plano A · 5 anos', planA(5).lo + '-' + planA(5).hi, '100-200');
-    t('Plano A · 12 anos', planA(12).lo + '-' + planA(12).hi, '200-300');
+    t('Plano A · 12 anos (à vontade)', planA(12).livre, true);
     // Plano B
     t('Plano B · 8 kg', planB(8).volume, 600);
     t('Plano B · taxa 8 kg', planB(8).taxaMedia, 150);
@@ -774,6 +796,8 @@
     t('RCH · 10 kg', rchManutencao(10), 40);
     t('RCH · 20 kg', rchManutencao(20), 60);
     t('RCH · 30 kg', rchManutencao(30), 70);
+    t('RCH · 60 kg', rchManutencao(60), 100);
+    t('RCH · 80 kg (teto 100 mL/h)', rchManutencao(80), 100);
     // Déficit
     t('Déficit 5% · 10 kg', deficitML(10, 5), 500);
     t('Déficit 3% · 12 kg', deficitML(12, 3), 360);
@@ -863,7 +887,9 @@
     $('btn-imprimir').addEventListener('click', function () { window.print(); });
 
     $('btn-limpar').addEventListener('click', function () {
-      ['peso','idade','rch-perdas','nice-perdas'].forEach(function (id) { if ($(id)) { $(id).value = ''; } });
+      ['peso','idade'].forEach(function (id) { if ($(id)) { $(id).value = ''; } });
+      // Perdas voltam ao padrão 0; vazias, as abas RCH e NICE ficavam em erro após Limpar
+      ['rch-perdas','nice-perdas'].forEach(function (id) { if ($(id)) { $(id).value = '0'; } });
       $('oms-estado').value = 'none';
       $('rch-deficit').value = '5';
       $('nice-deficit').value = '0';
