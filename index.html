@@ -595,7 +595,10 @@
       alertasList.push('<strong>RCH não se aplica a neonatos com menos de 1 mês.</strong> Usar manutenção por dia de vida.');
     }
     if (peso > 60) {
-      alertasList.push('Peso acima de 60 kg: a manutenção foi limitada a 100 mL/h (2.400 mL/dia), máximo habitual da RCH. Considerar o peso ideal no cálculo.');
+      // O teto vale para a manutenção plena, antes da fração escolhida; com 2/3 a taxa aplicada é menor
+      alertasList.push('Peso acima de 60 kg: a manutenção plena foi limitada a 100 mL/h (2.400 mL/dia), máximo habitual da RCH' +
+        (fracao < 1 ? '; com a fração selecionada, a manutenção aplicada é de ' + fmt(r.manut) + ' mL/h' : '') +
+        '. Considerar o peso ideal no cálculo.');
     }
     if (peso < 4) {
       alertasList.push('Peso abaixo de 4 kg: a RCH orienta definir a taxa de reidratação com médico sênior.');
